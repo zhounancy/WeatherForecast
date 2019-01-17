@@ -3,7 +3,7 @@ package com.example.wforecast.db;
 import org.litepal.crud.DataSupport;
 
 public class County extends DataSupport {
-    private int id;
+    private int id; //this is the API key
     private String countyName;
     private String weatherId;
     private int cityId;
