@@ -1,10 +1,13 @@
 package com.example.wforecast.util;
 
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.example.wforecast.db.City;
 import com.example.wforecast.db.County;
 import com.example.wforecast.db.Province;
+import com.example.wforecast.gson.Weather;
+import com.google.gson.Gson;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -17,7 +20,8 @@ public class Utility {
     public static boolean handleProvinceResponse(String response) {
         if (!TextUtils.isEmpty(response)) {
             try {
-                JSONArray allProvinces = new JSONArray(response);
+                JSONArray allProvinces = new JSONArray(response); //formats the data into a json array,
+                // if there is an error with formatting the data then it will throw an exception.
                 for (int i = 0; i < allProvinces.length(); i++) {
                     JSONObject provinceObject = allProvinces.getJSONObject(i);
                     Province province = new Province();
@@ -76,6 +80,21 @@ public class Utility {
         }
         return false;
     }
+
+    //将返回的JSON数据解析成weather实体类
+     public static Weather handleWeatherResponse(String response) {
+         try {
+             Log.i("tagconvertstr", "[ "+ response +" ]");
+
+             JSONObject jsonObject = new JSONObject(response);
+             JSONArray jsonArray = jsonObject.getJSONArray("HeWeather6");
+             String weatherContent = jsonArray.getJSONObject(0).toString();
+             return new Gson().fromJson(weatherContent, Weather.class);
+         } catch (Exception e) {
+             e.printStackTrace();
+         }
+         return null;
+     }
 
 
 }
