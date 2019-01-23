@@ -6,6 +6,7 @@ import android.util.Log;
 import com.example.wforecast.db.City;
 import com.example.wforecast.db.County;
 import com.example.wforecast.db.Province;
+import com.example.wforecast.gson.Air;
 import com.example.wforecast.gson.Weather;
 import com.google.gson.Gson;
 
@@ -14,6 +15,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class Utility {
+
+    private static final String TAG = "Utility";
 
     //Decodes and handles the response to a service request in the province level.
     //解析和处理服务器返回的省级数据
@@ -84,14 +87,27 @@ public class Utility {
     //将返回的JSON数据解析成weather实体类
      public static Weather handleWeatherResponse(String response) {
          try {
-             Log.i("tagconvertstr", "[ "+ response +" ]");
-
              JSONObject jsonObject = new JSONObject(response);
              JSONArray jsonArray = jsonObject.getJSONArray("HeWeather6");
              String weatherContent = jsonArray.getJSONObject(0).toString();
              return new Gson().fromJson(weatherContent, Weather.class);
          } catch (Exception e) {
              e.printStackTrace();
+         }
+         return null;
+     }
+
+     public static Air handleAQIresponse(String response) {
+        try {
+            JSONObject jsonObject = new JSONObject(response);
+            JSONArray jsonArray = jsonObject.getJSONArray("HeWeather6");
+            Log.d(TAG, "handleAQIresponse: jsonArray = " + jsonArray);
+            JSONObject jsonObject1 = jsonArray.getJSONObject(0);
+            Log.d(TAG, "handleAQIresponse: jsonObject1 is == " + jsonObject1);
+            //JSONObject AQIcontent= jsonObject1.getJSONObject("air_now_city");
+            return new Gson().fromJson(String.valueOf(jsonObject1), Air.class);
+        } catch (Exception e) {
+            e.printStackTrace();
          }
          return null;
      }

@@ -9,6 +9,7 @@ import android.os.IBinder;
 import android.os.SystemClock;
 import android.preference.PreferenceManager;
 
+import com.example.wforecast.gson.Air;
 import com.example.wforecast.gson.Weather;
 import com.example.wforecast.util.HttpUtil;
 import com.example.wforecast.util.Utility;
@@ -71,6 +72,24 @@ public class AutoUpdateService extends Service {
 
             String weatherUrl = "https://free-api.heweather.net/s6/weather?&location=" + weatherId +
                     "&key=5cfa71f0523045cbbc2a915848c89ad4";
+            String AQIUrl = "https://free-api.heweather.net/s6/air/now?&location=" + weatherId +
+                    "&key=5cfa71f0523045cbbc2a915848c89ad4";
+
+            HttpUtil.sendOkHttpRequest(AQIUrl, new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    e.printStackTrace();
+                }
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    final String AQIresponse = response.body().string();
+                    SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(AutoUpdateService.this).edit();
+                    editor.putString("air", AQIresponse);
+                    editor.apply();
+                }
+            });
+
             HttpUtil.sendOkHttpRequest(weatherUrl, new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
@@ -81,6 +100,14 @@ public class AutoUpdateService extends Service {
                 public void onResponse(Call call, Response response) throws IOException {
                     String responseText = response.body().string();
                     Weather weather = Utility.handleWeatherResponse(responseText);
+
+//                    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(AutoUpdateService.this);
+//                    String airString = prefs.getString("air", null);
+//                    Air air = Utility.handleAQIresponse(airString);
+//                    if (air != null && "ok".equals(air.status)) {
+//                        weather.setAir(air);
+//                    }
+
                     if (weather != null && "ok".equals(weather.status)) {
                         SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(AutoUpdateService.this).edit();
                         editor.putString("weather", responseText);

@@ -21,6 +21,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.example.wforecast.gson.Air;
 import com.example.wforecast.gson.Forecast;
 import com.example.wforecast.gson.Lifestyle;
 import com.example.wforecast.gson.Weather;
@@ -85,11 +86,17 @@ public class WeatherActivity extends AppCompatActivity {
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         String weatherString = prefs.getString("weather", null);
-        Log.d(TAG, "onCreate: weatherString = " + weatherString);
+        String airString = prefs.getString("air", null);
         if (weatherString != null) {
             //有缓存时直接解析天气数据
             Weather weather = Utility.handleWeatherResponse(weatherString);
             mWeatherId = weather.basic.weatherId;
+            if (airString != null) {
+                Air air = Utility.handleAQIresponse(airString);
+                if (air != null && "ok".equals(air.status)) {
+                    weather.setAir(air);
+                }
+            }
             showWeatherInfo(weather);
         } else { //First time would not have any forecast data therefore will extract weather_id
             //from the intent.
@@ -121,6 +128,7 @@ public class WeatherActivity extends AppCompatActivity {
         });
     }
 
+    //Gets the current Bing pic online, saves the data to sharedpreferences and then sets as background
     private void loadBingPic() {
         String requestBingPic = "http://guolin.tech/api/bing_pic";
         HttpUtil.sendOkHttpRequest(requestBingPic, new Callback() {
@@ -147,9 +155,27 @@ public class WeatherActivity extends AppCompatActivity {
 
     //根据天气id请求城市天气信息
     public void requestWeather(final String weatherId) {
-        Log.d(TAG, "requestWeather: " + weatherId);
         String weatherUrl = "https://free-api.heweather.net/s6/weather?&location=" + weatherId +
                 "&key=5cfa71f0523045cbbc2a915848c89ad4";
+        String AQIUrl = "https://free-api.heweather.net/s6/air/now?&location=" + weatherId +
+                "&key=5cfa71f0523045cbbc2a915848c89ad4";
+
+        HttpUtil.sendOkHttpRequest(AQIUrl, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                Log.d(TAG, "onFailure: error in AQI sendOkHttpRequest");
+                e.printStackTrace();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                final String AQIresponse = response.body().string();
+                SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
+                editor.putString("air", AQIresponse);
+                editor.apply();
+            }
+        });
+
         HttpUtil.sendOkHttpRequest(weatherUrl, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
@@ -163,11 +189,18 @@ public class WeatherActivity extends AppCompatActivity {
                     }
                 });
             }
-
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 final String responseText = response.body().string();
                 final Weather weather = Utility.handleWeatherResponse(responseText);
+
+                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this);
+                String airString = prefs.getString("air", null);
+                final Air air = Utility.handleAQIresponse(airString);
+                if (air != null && "ok".equals(air.status)) {
+                    weather.setAir(air);
+                }
+
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -216,10 +249,10 @@ public class WeatherActivity extends AppCompatActivity {
             forecastLayout.addView(view);
         }
 
-//       if (weather.aqi != null) {
-//            aqiText.setText(weather.aqi.city.aqi);
-//            pm25Text.setText(weather.aqi.city.pm25);
-//        }
+       if (weather.air != null) {
+            aqiText.setText(weather.air.aqiData.aqi);
+            pm25Text.setText(weather.air.aqiData.pm25);
+        }
 
         for (Lifestyle lifestyle : weather.lifestyleList) {
             if ("comf".equals(lifestyle.type)) {
